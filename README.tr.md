@@ -163,8 +163,8 @@ Kurulum scripti şunları yapar:
 
 | İsim | Rol |
 |------|-----|
-| Ebubekir Yılmaz | Geliştirici |
 | Ezgi Efsa Güleç | Proje Lideri & Baş Geliştirici |
+| Ebubekir Yılmaz | Geliştirici |
 | Fatma Zehra Osmanoğlu | Geliştirici |
 
 ---
