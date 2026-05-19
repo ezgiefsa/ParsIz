@@ -163,8 +163,9 @@ The installer will:
 
 | Name | Role |
 |------|------|
-| Ebubekir Yılmaz | Developer |
+
 | Ezgi Efsa Güleç | Project Lead & Developer |
+| Ebubekir Yılmaz | Developer |
 | Fatma Zehra Osmanoğlu | Developer |
 
 ---
