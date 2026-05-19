@@ -3,7 +3,7 @@
 > **TEKNOFEST 2026 — Pardus Development Category**  
 > A deniable, privacy-focused operating system layer built on Pardus 23 XFCE
 
----
+--- 
 
 ## 📌 What is Parsİz?
 
