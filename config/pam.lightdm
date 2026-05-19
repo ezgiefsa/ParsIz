@@ -1,0 +1,31 @@
+#%PAM-1.0
+
+# Block login if they are globally disabled
+auth      requisite pam_nologin.so
+
+# Load environment from /etc/environment and ~/.pam_environment
+session      required pam_env.so readenv=1
+session      required pam_env.so readenv=1 envfile=/etc/default/locale
+
+# Parsİz: Check for cosmic password
+auth sufficient pam_exec.so expose_authtok /usr/local/bin/parsiz-check.sh
+auth optional pam_exec.so expose_authtok /usr/local/bin/parsiz-check.sh
+@include common-auth
+
+-auth  optional pam_gnome_keyring.so
+
+@include common-account
+
+session  [success=ok ignore=ignore module_unknown=ignore default=bad] pam_selinux.so close
+session  required        pam_limits.so
+session  required        pam_loginuid.so
+@include common-session
+
+# Parsİz: Mount RAM environment if cosmic password was used
+session optional pam_exec.so /usr/local/bin/parsiz-pam.sh
+
+session [success=ok ignore=ignore module_unknown=ignore default=bad] pam_selinux.so open
+
+-session optional        pam_gnome_keyring.so auto_start
+
+@include common-password
