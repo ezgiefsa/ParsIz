@@ -115,7 +115,7 @@ Parsİz/
 
 ```bash
 git clone https://github.com/ezgiefsa/ParsIz.git
-cd Parz-z
+cd ParsIz
 sudo bash install.sh
 ```
 
