@@ -1,29 +1,29 @@
 #!/bin/bash
 # Parsİz — Shutdown Sync Script
-# Syncs RAM back to LUKS container on shutdown
+# Kapanışta RAM'i LUKS'a kaydeder, izleri temizler
 
 MAPPER=kozmik_oda
 LUKS_MOUNT=/mnt/luks_disk
 RAM_MOUNT=/mnt/secure_ram
 HOME_DIR=/home/lenovo
 
-# Only run if hidden session is active
+# Gizli oturum aktif değilse çık
 [ ! -e /dev/mapper/$MAPPER ] && exit 0
 
 mkdir -p "$LUKS_MOUNT"
 
-# Mount LUKS container
+# LUKS'u mount et
 mount /dev/mapper/"$MAPPER" "$LUKS_MOUNT" 2>/dev/null
 
-# Sync RAM back to LUKS
+# RAM'den diske kaydet
 rsync -a --delete "$RAM_MOUNT"/ "$LUKS_MOUNT"/ 2>/dev/null
 
-# Unmount everything
+# Bağlantıları çöz
 umount "$HOME_DIR" 2>/dev/null
 umount "$RAM_MOUNT" 2>/dev/null
 umount "$LUKS_MOUNT" 2>/dev/null
 
-# Close LUKS (wipes key from memory)
+# LUKS kapat (anahtar bellekten silinir)
 cryptsetup close "$MAPPER" 2>/dev/null
 
 exit 0
