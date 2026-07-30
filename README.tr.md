@@ -1,23 +1,23 @@
-# Parsİz — İnkar Edilebilir İşletim Sistemi
+# Parsİz — Pardus için Amnezik Gizli Oturum
 
 > **TEKNOFEST 2026 — Pardus Geliştirme Kategorisi**  
-> Pardus 23 XFCE üzerine inşa edilmiş, gizlilik odaklı inkar edilebilir işletim sistemi mimarisi
+> Pardus 23 XFCE üzerine inşa edilmiş gizlilik odaklı gizli oturum katmanı
 
 ---
 
 ## 📌 Parsİz Nedir?
 
-Parsİz, Pardus 23 üzerine inşa edilmiş bir inkar edilebilir işletim sistemi mimarisidir. Tek bir bilgisayarın, giriş ekranında girilen şifreye göre iki tamamen farklı modda çalışmasını sağlar:
+Parsİz, Pardus 23'e **gizli oturum** özelliği ekler. Giriş ekranında ikincil bir şifre girildiğinde, LUKS şifreli bir konteyner açılır ve içeriği RAM'e yüklenir. Oturum tamamen bellekte çalışır — sistem kapandığında değişiklikler şifreli konteynere geri kaydedilir ve RAM'de veya loglarda hiçbir iz kalmaz.
 
 | Giriş Şifresi | Sonuç |
 |---------------|-------|
-| Normal şifre | Standart Pardus masaüstü — gizli sistemden iz yok |
-| Kozmik şifre | Gizli masaüstü — dosyalar şifreli LUKS konteynerinden RAM'e yüklenir |
+| Normal şifre | Standart Pardus masaüstü |
+| Gizli şifre | Gizli masaüstü — veriler LUKS'tan RAM'e yüklenir |
 | Yanlış şifre | Standart kimlik doğrulama hatası |
 
-Gizli oturum kapandıktan sonra diskte **hiçbir iz kalmaz**. Tüm veriler oturum süresince RAM'de yaşar; yalnızca kapanışta şifreli konteynere geri yazılır.
+> **Dürüst kapsam:** Parsİz **güçlü şifreleme + amnezik RAM oturumu** sağlar. Tam inkar edilebilir şifreleme sistemi değildir — konteyner dosyası diskte görünür durmaktadır. Koruma modeli şudur: veriler dinlenme halinde güçlü şifrelemeyle korunur, kapanış sonrasında RAM'de iz kalmaz.
 
-> **Yapay zekâ kullanımı hakkında:** Bu sistemi biz tasarladık. Yapay zekâyı araştırma ve bazı kod bloklarını hızlandırmak için kullandık, ancak sistem tasarımı ve entegrasyon tamamen bize ait.
+> **Yapay zekâ kullanımı:** Bu sistemi biz tasarladık. Yapay zekâyı araştırma ve bazı kod bloklarını hızlandırmak için kullandık, ancak sistem tasarımı ve entegrasyon tamamen bize aittir.
 
 ---
 
@@ -32,48 +32,48 @@ Giriş Ekranı (LightDM + GTK Greeter)
         ├── Normal Şifre ─────────────────► Standart Pardus Masaüstü
         │                                   /home/lenovo (gerçek disk)
         │
-        └── Kozmik Şifre
+        └── Gizli Şifre
                 │
                 ▼
-         stealthkernel-check.sh
-         (cryptsetup ile LUKS konteynerini açar)
+         parsiz-check.sh (PAM auth aşaması)
+         cryptsetup open → LUKS konteyneri açıldı
+         exit 0 → common-auth atlanır
                 │
                 ▼
-         stealthkernel-pam.sh (oturum aşaması)
+         parsiz-pam.sh (PAM session aşaması)
          ├── LUKS → /mnt/luks_disk mount
-         ├── tmpfs (RAM diski) → /mnt/secure_ram oluştur
-         ├── rsync LUKS içeriği → RAM
-         ├── RAM sahipliğini kullanıcıya ver
+         ├── tmpfs (RAM diski) → /mnt/secure_ram
+         ├── rsync LUKS → RAM
+         ├── LUKS umount
          └── RAM → /home/lenovo bind mount
                 │
                 ▼
          Gizli Masaüstü
-         (Tüm dosyalar RAM'de, diske şifresiz yazılmaz)
+         (Tüm veriler yalnızca RAM'de)
                 │
                 ▼
-         Kapanış → stealth-shutdown.sh
-         ├── LUKS → /mnt/luks_disk mount et
-         ├── rsync RAM → LUKS (tüm değişiklikleri kaydet)
-         ├── umount /home/lenovo
-         ├── umount /mnt/secure_ram
-         ├── umount /mnt/luks_disk
-         ├── cryptsetup close (anahtar bellekten silindi)
-         └── Logları temizle
+         Kapanış → parsiz-shutdown.sh
+         ├── LUKS → /mnt/luks_disk mount
+         ├── rsync RAM → LUKS (değişiklikleri kaydet)
+         ├── umount /home/lenovo, /mnt/secure_ram, /mnt/luks_disk
+         └── cryptsetup close (anahtar bellekten silindi)
 ```
 
 ---
 
 ## 🔐 Güvenlik Modeli
 
-| Tehdit | Koruma Seviyesi | Açıklama |
-|--------|----------------|----------|
-| Uzaktan dijital saldırı | ✅ Yüksek | LUKS şifreli konteyner |
-| Fiziksel el koyma (kapalı) | ✅ Yüksek | Disk şifreli, anahtar diskte yok |
-| Fiziksel zorlama (rubber-hose) | ✅ Yüksek | Normal şifre masum sistemi açar |
-| Adli disk incelemesi | ✅ Yüksek | Kozmik şifre olmadan LUKS okunamaz |
-| Cold boot saldırısı | ⚠️ Kısmi | RAM temizleme penceresi ~saniyeler |
+| Tehdit | Koruma | Notlar |
+|--------|--------|--------|
+| Uzaktan saldırı | ✅ Güçlü | LUKS şifreli konteyner |
+| Fiziksel el koyma (kapalı) | ✅ Güçlü | Disk şifreli, anahtar diskte yok |
+| Fiziksel zorlama | ⚠️ Kısmi | Normal şifre gerçek masaüstünü açar; konteyner dosyası görünür |
+| Adli disk incelemesi | ✅ Güçlü | Gizli şifre olmadan konteyner okunamaz |
+| RAM adli incelemesi (açık) | ⚠️ Kısmi | Oturum aktifken anahtar RAM'de |
+| Cold boot saldırısı | ⚠️ Kısmi | Güç kesilmesinden sonra ~saniyeler |
 | Uyku / Hibernate | ✅ Devre dışı | systemctl ile maskelendi |
 | Swap | ✅ Devre dışı | Swap partition yok |
+| Oturumdayken güç kesilmesi | ⚠️ Risk | Kaydedilmemiş değişiklikler kaybolur |
 
 ---
 
@@ -85,77 +85,62 @@ Parsİz/
 ├── README.tr.md                 # Bu dosya (Türkçe)
 ├── install.sh                   # Otomatik kurulum scripti
 ├── scripts/
-│   ├── stealthkernel-check.sh   # PAM auth: kozmik şifrede LUKS açar
-│   ├── stealthkernel-pam.sh     # PAM session: RAM ortamını mount eder
-│   └── stealth-shutdown.sh      # Kapanış: RAM → LUKS sync, iz temizle
+│   ├── parsiz-check.sh          # PAM auth: gizli şifrede LUKS açar
+│   ├── parsiz-pam.sh            # PAM session: RAM ortamını mount eder
+│   └── parsiz-shutdown.sh       # Kapanış: RAM → LUKS sync
 ├── config/
-│   ├── lightdm.conf             # LightDM yapılandırması (GTK greeter)
+│   ├── lightdm.conf             # LightDM yapılandırması
 │   ├── pam.lightdm              # PAM yapılandırması
 │   └── stealth-sync.service     # systemd kapanış sync servisi
-├── tests/
-│   ├── test_normal_login.md     # Test: normal şifre girişi
-│   ├── test_hidden_login.md     # Test: kozmik şifre girişi
-│   ├── test_persistence.md      # Test: yeniden başlatmada veri kalıcılığı
-│   └── test_security.md         # Test: güvenlik kontrolleri
-└── docs/
-    ├── architecture.md          # Detaylı mimari dokümantasyon
-    └── threat_model.md          # Tehdit modeli analizi
+└── tests/
+    ├── test_normal_login.md
+    ├── test_hidden_login.md
+    ├── test_persistence.md
+    └── test_security.md
 ```
 
 ---
 
 ## ⚙️ Gereksinimler
 
-- Pardus 23 XFCE (temiz kurulum önerilir)
+- Pardus 23 XFCE (temiz kurulum)
 - `cryptsetup` >= 2.6
 - `rsync` >= 3.2
-- Minimum 4 GB RAM (tmpfs tahsisi)
-- Minimum 25 GB boş disk alanı (LUKS konteyneri)
+- Minimum 4 GB RAM
+- Minimum 25 GB boş disk alanı
 
 ---
 
 ## 🚀 Kurulum
 
 ```bash
-# Repoyu klonla
-git clone https://github.com/ezgiefsa/Parsiz.git
-cd Parsiz
-
-# Kurulum scriptini çalıştır
+git clone https://github.com/ezgiefsa/Parz-z.git
+cd Parz-z
 sudo bash install.sh
 ```
-
-Kurulum scripti şunları yapar:
-1. `/opt/system_data.img` konumunda 20 GB LUKS şifreli konteyner oluşturur
-2. PAM kimlik doğrulama scriptlerini kurar
-3. LightDM'i GTK greeter ile yapılandırır
-4. systemd kapanış sync servisini etkinleştirir
-5. Swap ve hibernate'i devre dışı bırakır
 
 ---
 
 ## 🧪 Test Sonuçları
 
-| Test | Beklenen Sonuç | Durum |
-|------|---------------|-------|
-| Normal giriş | Standart Pardus masaüstü, gizli iz yok | ✅ Geçti |
-| Kozmik giriş | Gizli masaüstü, `/home/lenovo` RAM mount edildi | ✅ Geçti |
+| Test | Beklenen | Durum |
+|------|----------|-------|
+| Normal giriş | Standart masaüstü, gizli iz yok | ✅ Geçti |
+| Gizli giriş | Gizli masaüstü, RAM mount edildi | ✅ Geçti |
 | Yanlış şifre | Kimlik doğrulama hatası | ✅ Geçti |
-| Dosya kalıcılığı | Dosyalar kapanışta LUKS'a kaydedilir | ✅ Geçti |
-| Kozmik sonrası normal giriş | Gizli dosyalar görünmüyor | ✅ Geçti |
-| Hibernate denemesi | Engellendi (systemd tarafından maskelendi) | ✅ Geçti |
+| Dosya kalıcılığı | Dosyalar yeniden başlatmada korunur | ✅ Geçti |
+| Gizli sonrası normal giriş | Gizli dosyalar görünmüyor | ✅ Geçti |
+| Hibernate denemesi | Engellendi | ✅ Geçti |
 | Swap kontrolü | Aktif swap yok | ✅ Geçti |
-| LUKS bütünlüğü | Kozmik şifre olmadan konteyner okunamaz | ✅ Geçti |
 
 ---
 
-## ⚠️ Önemli Güvenlik Notları
+## ⚠️ Bilinen Sınırlamalar
 
-1. **Gizli oturumda asla uyku/hibernate kullanma** — sadece tam kapatma (`sudo systemctl poweroff`)
-2. **Gizli oturumda ekran kilidi kullanma** — çıkış yap
-3. **Kozmik şifre asla yazıya dökülmemeli**
-4. **LUKS konteynerini periyodik olarak** harici şifreli sürücüye yedekle
-5. **Kozmik şifre unutulursa** — veriler kalıcı olarak erişilemez (tasarım gereği)
+1. `/opt/system_data.img` konteyner dosyası diskte görünür — gizli birim değil
+2. Gizli oturumda asla uyku/hibernate kullanma — sadece `sudo systemctl poweroff`
+3. Gizli oturumda güç kesilmesi = kaydedilmemiş değişiklikler kaybolur
+4. tmpfs boyutu sabit 4G — RAM kısıtlıysa ayarla
 
 ---
 
@@ -169,10 +154,4 @@ Kurulum scripti şunları yapar:
 
 ---
 
-## 📄 Lisans
-
-Bu proje **TEKNOFEST 2026 — Pardus Geliştirme Kategorisi** için geliştirilmiştir.
-
----
-
-*Parsİz — Çünkü gizlilik bir suç değil, bir haktır.*
+*Parsİz — Güçlü şifreleme, amnezik oturumlar, Pardus'a özel.*
