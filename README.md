@@ -49,12 +49,12 @@ Login Screen (LightDM + GTK Greeter)
                 │
                 ▼
          Hidden Desktop
-         (All data in RAM only)
+         (All data in RAM only — disk untouched)
                 │
                 ▼
          Shutdown → parsiz-shutdown.sh
          ├── Mount LUKS → /mnt/luks_disk
-         ├── rsync RAM → LUKS (save changes)
+         ├── rsync RAM → LUKS (save all changes)
          ├── umount /home/lenovo, /mnt/secure_ram, /mnt/luks_disk
          └── cryptsetup close (key wiped from memory)
 ```
@@ -80,7 +80,7 @@ Login Screen (LightDM + GTK Greeter)
 ## 📁 Repository Structure
 
 ```
-Parsİz/
+ParsIz/
 ├── README.md                    # This file (English)
 ├── README.tr.md                 # Turkish documentation
 ├── install.sh                   # Automated installation script
