@@ -1,51 +1,21 @@
 #!/bin/bash
-# Parsİz — PAM Session Script
-# Mounts RAM environment if LUKS container is open
+# Parsİz — PAM Auth Check Script
+# Şifreyi okur, LUKS konteynerini açmayı dener
+# Başarılıysa exit 0 (sufficient → common-auth atlanır)
+# Başarısızsa exit 1 (normal akış devam eder)
 
 LUKS_IMG=/opt/system_data.img
 MAPPER=kozmik_oda
-LUKS_MOUNT=/mnt/luks_disk
-RAM_MOUNT=/mnt/secure_ram
-HOME_DIR=/home/lenovo
+PASS_LEN=6
 
-# If LUKS is open, mount RAM environment
-if [ -e /dev/mapper/$MAPPER ]; then
-    mkdir -p "$LUKS_MOUNT" "$RAM_MOUNT"
-    mount /dev/mapper/"$MAPPER" "$LUKS_MOUNT" 2>/dev/null
-    mount -t tmpfs -o size=4G,mode=0700 tmpfs "$RAM_MOUNT" 2>/dev/null
-    rsync -a --quiet "$LUKS_MOUNT"/ "$RAM_MOUNT"/ 2>/dev/null
-    chown -R lenovo:lenovo "$RAM_MOUNT" 2>/dev/null
-    umount "$LUKS_MOUNT" 2>/dev/null
-    mount --bind "$RAM_MOUNT" "$HOME_DIR" 2>/dev/null
+PASSWORD=$(cat)
+[ -z "$PASSWORD" ] && exit 1
+
+if echo -n "$PASSWORD" | cryptsetup open "$LUKS_IMG" "$MAPPER" \
+    --type luks \
+    --key-file=- \
+    --keyfile-size=$PASS_LEN 2>/dev/null; then
+    exit 0
 fi
 
-exit 0
-#!/bin/bash
-# Parsİz — Shutdown Sync Script
-# Syncs RAM back to LUKS container on shutdown
-
-MAPPER=kozmik_oda
-LUKS_MOUNT=/mnt/luks_disk
-RAM_MOUNT=/mnt/secure_ram
-HOME_DIR=/home/lenovo
-
-# Only run if hidden session is active
-[ ! -e /dev/mapper/$MAPPER ] && exit 0
-
-mkdir -p "$LUKS_MOUNT"
-
-# Mount LUKS container
-mount /dev/mapper/"$MAPPER" "$LUKS_MOUNT" 2>/dev/null
-
-# Sync RAM back to LUKS
-rsync -a --delete "$RAM_MOUNT"/ "$LUKS_MOUNT"/ 2>/dev/null
-
-# Unmount everything
-umount "$HOME_DIR" 2>/dev/null
-umount "$RAM_MOUNT" 2>/dev/null
-umount "$LUKS_MOUNT" 2>/dev/null
-
-# Close LUKS (wipes key from memory)
-cryptsetup close "$MAPPER" 2>/dev/null
-
-exit 0
+exit 1
