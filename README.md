@@ -114,7 +114,7 @@ Parsİz/
 ## 🚀 Installation
 
 ```bash
-git clone https://github.com/ezgiefsa/Parz-z.git
+git clone https://github.com/ezgiefsa/ParsIz.git
 cd Parz-z
 sudo bash install.sh
 ```
