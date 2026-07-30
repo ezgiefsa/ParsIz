@@ -1,6 +1,6 @@
 #!/bin/bash
 # Parsİz — PAM Session Script
-# Mounts RAM environment if LUKS container is open
+# LUKS konteyneri açıksa RAM ortamını mount eder
 
 LUKS_IMG=/opt/system_data.img
 MAPPER=kozmik_oda
@@ -8,7 +8,7 @@ LUKS_MOUNT=/mnt/luks_disk
 RAM_MOUNT=/mnt/secure_ram
 HOME_DIR=/home/lenovo
 
-# If LUKS is open, mount RAM environment
+# LUKS açık mı? Direkt mount et
 if [ -e /dev/mapper/$MAPPER ]; then
     mkdir -p "$LUKS_MOUNT" "$RAM_MOUNT"
     mount /dev/mapper/"$MAPPER" "$LUKS_MOUNT" 2>/dev/null
