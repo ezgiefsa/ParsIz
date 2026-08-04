@@ -15,3 +15,16 @@ sudo cryptsetup open /opt/system_data.img test --key-file /dev/random
 ```
 
 ## Expected Result
+No key available with this passphrase.
+
+
+## Actual Result
+- ✅ LUKS konteyneri yanlış şifre ile açılamadı
+- ✅ İçerik okunamaz durumda
+- ✅ Brute force koruması aktif
+
+## Status: PASS
+
+## Notes
+Test tarihi: Mayıs 2026
+Donanım: Lenovo G580, Pardus 23 XFCE
